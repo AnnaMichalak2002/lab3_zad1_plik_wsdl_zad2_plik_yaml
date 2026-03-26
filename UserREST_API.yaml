@@ -1,0 +1,322 @@
+openapi: 3.0.3
+info:
+  title: User REST API
+  version: 1.0.0
+  description: |
+    Specyfikacja interfejsu REST API dla modelu Użytkownik.
+    API udostępnia operacje CRUD oraz wykorzystuje Basic Authentication
+    i Bearer Authentication zgodnie z wymaganiami zadania laboratoryjnego.
+
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+tags:
+  - name: Users
+    description: Operacje CRUD dla użytkowników
+
+paths:
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Pobranie listy użytkowników
+      description: Zwraca listę wszystkich użytkowników.
+      operationId: getAllUsers
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/RequestDateHeader'
+      responses:
+        '200':
+          description: Lista użytkowników
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponseEnvelope'
+        '401':
+          description: Brak autoryzacji lub niepoprawne dane logowania
+
+    post:
+      tags:
+        - Users
+      summary: Utworzenie nowego użytkownika
+      description: Tworzy nowego użytkownika w systemie.
+      operationId: createUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/RequestDateHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: Użytkownik został utworzony
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseEnvelope'
+        '400':
+          description: Niepoprawne dane wejściowe
+        '401':
+          description: Brak autoryzacji lub niepoprawny token
+
+  /users/{pesel}:
+    get:
+      tags:
+        - Users
+      summary: Pobranie pojedynczego użytkownika
+      description: Zwraca dane użytkownika na podstawie numeru PESEL.
+      operationId: getUserByPesel
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeselPath'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/RequestDateHeader'
+      responses:
+        '200':
+          description: Dane użytkownika
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseEnvelope'
+        '400':
+          description: Niepoprawny PESEL
+        '401':
+          description: Brak autoryzacji lub niepoprawne dane logowania
+        '404':
+          description: Nie znaleziono użytkownika
+
+    put:
+      tags:
+        - Users
+      summary: Aktualizacja użytkownika
+      description: Aktualizuje dane użytkownika na podstawie numeru PESEL.
+      operationId: updateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeselPath'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/RequestDateHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Użytkownik został zaktualizowany
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponseEnvelope'
+        '400':
+          description: Niepoprawne dane wejściowe
+        '401':
+          description: Brak autoryzacji lub niepoprawny token
+        '404':
+          description: Nie znaleziono użytkownika
+
+    delete:
+      tags:
+        - Users
+      summary: Usunięcie użytkownika
+      description: Usuwa użytkownika na podstawie numeru PESEL.
+      operationId: deleteUser
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PeselPath'
+        - $ref: '#/components/parameters/RequestIdHeader'
+        - $ref: '#/components/parameters/RequestDateHeader'
+      responses:
+        '200':
+          description: Użytkownik został usunięty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteUserResponseEnvelope'
+        '400':
+          description: Niepoprawny PESEL
+        '401':
+          description: Brak autoryzacji lub niepoprawne dane logowania
+        '404':
+          description: Nie znaleziono użytkownika
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Uwierzytelnianie Basic Authentication
+
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Uwierzytelnianie Bearer Authentication z użyciem tokenu JWT
+
+  parameters:
+    RequestIdHeader:
+      name: requestId
+      in: header
+      required: true
+      description: Unikalny identyfikator zapytania
+      schema:
+        type: string
+        format: uuid
+        example: 550e8400-e29b-41d4-a716-446655440000
+
+    RequestDateHeader:
+      name: requestDate
+      in: header
+      required: true
+      description: Data i czas wysłania żądania
+      schema:
+        type: string
+        format: date-time
+        example: 2026-03-26T12:00:00Z
+
+    PeselPath:
+      name: pesel
+      in: path
+      required: true
+      description: Numer PESEL użytkownika
+      schema:
+        type: string
+        minLength: 11
+        maxLength: 11
+        pattern: '^[0-9]{11}$'
+        example: '01234567890'
+
+  schemas:
+    Citizenship:
+      type: string
+      description: Obywatelstwo użytkownika
+      enum:
+        - PL
+        - DE
+        - UK
+      example: PL
+
+    User:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - age
+        - pesel
+        - citizenship
+        - email
+      properties:
+        firstName:
+          type: string
+          description: Imię użytkownika
+          minLength: 2
+          maxLength: 50
+          pattern: '^[A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż-]+$'
+          example: Jan
+        lastName:
+          type: string
+          description: Nazwisko użytkownika
+          minLength: 2
+          maxLength: 70
+          pattern: '^[A-ZĄĆĘŁŃÓŚŹŻa-ząćęłńóśźż-]+$'
+          example: Kowalski
+        age:
+          type: integer
+          format: int32
+          description: Wiek użytkownika
+          minimum: 0
+          maximum: 120
+          example: 25
+        pesel:
+          type: string
+          description: Numer PESEL użytkownika
+          minLength: 11
+          maxLength: 11
+          pattern: '^[0-9]{11}$'
+          example: '01234567890'
+        citizenship:
+          $ref: '#/components/schemas/Citizenship'
+        email:
+          type: string
+          format: email
+          description: Adres email użytkownika
+          minLength: 6
+          maxLength: 100
+          pattern: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+          example: jan.kowalski@example.com
+
+    UserResponseEnvelope:
+      type: object
+      required:
+        - requestId
+        - requestDate
+        - user
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          example: 423e4567-e89b-12d3-a456-426614174333
+        requestDate:
+          type: string
+          format: date-time
+          example: 2026-03-26T12:03:00Z
+        user:
+          $ref: '#/components/schemas/User'
+
+    UserListResponseEnvelope:
+      type: object
+      required:
+        - requestId
+        - requestDate
+        - users
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          example: 523e4567-e89b-12d3-a456-426614174444
+        requestDate:
+          type: string
+          format: date-time
+          example: 2026-03-26T12:04:00Z
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+
+    DeleteUserResponseEnvelope:
+      type: object
+      required:
+        - requestId
+        - requestDate
+        - message
+        - deletedPesel
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          example: 623e4567-e89b-12d3-a456-426614174555
+        requestDate:
+          type: string
+          format: date-time
+          example: 2026-03-26T12:05:00Z
+        message:
+          type: string
+          example: Użytkownik został usunięty
+        deletedPesel:
+          type: string
+          minLength: 11
+          maxLength: 11
+          pattern: '^[0-9]{11}$'
+          example: '01234567890'
